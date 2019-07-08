@@ -5,6 +5,7 @@
 ***
 
 < 一 > 蓝牙发射端(**外围设备**)
+
 #import <CoreBluetooth/CoreBluetooth.h>  
 协议：CBPeripheralManagerDelegate 
 
@@ -57,5 +58,56 @@ peripheralMgr = [[CBPeripheralManager alloc]initWithDelegate:self queue:nil];
   // 服务加入管理中 回调didAddService协议方法 
   [peripheralMgr addService:service]; 
 }
+``` 
+
+4）发射广播
+
 ```
+-(void)peripheralManager:(CBPeripheralManager *)peripheral didAddService:(CBService *)service error:(NSError *)error
+{
+  if (error) {
+    // 发生错误未能成功添加服务
+  } else {
+    [peripheralMgr startAdvertising:@{
+                      // 这是广播名称,可以作为中心设备接收判断的Flag
+                      CBAdvertisementDataServiceUUIDsKey : @[[CBUUID UUIDWithString:@"CCCCCCCC-E798-4D5C-8DCF-49908332DF9F"]]
+                     ,CBAdvertisementDataLocalNameKey : @"GoodGoodStudyDaydayUp"}];
+  }
+}
+// 广播发射之后会走楼下的协议回调方法
+-(void)peripheralManagerDidStartAdvertising:(CBPeripheralManager *)peripheral error:(NSError *)error
+{
+  if (error) {
+    // 发送服务错误
+  }else{
+    // 发送服务成功
+  }
+}
+
+```
+
+5)读写请求的接收 
+
+**读请求 didReceiveReadRequest 回调方法** 
+
+**写请求 didReceiveWriteRequests 回调方法**
+
+```
+// 得到写请求的详细数据看楼下
+- (void)peripheralManager:(CBPeripheralManager *)peripheral didReceiveWriteRequests:(NSArray<CBATTRequest *> *)requests
+{
+  NSLog(@"收到写数据请求: %@",peripheral);
+  NSLog(@"数据请求： %@ , %lu",requests[0],(unsigned long)requests.count);
+  CBATTRequest *request = requests[0];
+  CBCharacteristic *cbs = request.characteristic;
+  NSLog(@"得到特征的UUID ： %@",cbs.UUID.description);
+  NSString*hahah = [[NSString alloc]initWithData:request.value encoding:NSUTF8StringEncoding];
+  NSLog(@"获取  ：%@",hahah);
+  NSLog(@"得到特征的UUID ： %@",cbs.UUID.description);
+  NSString*hahah = [[NSString alloc]initWithData:request.value encoding:NSUTF8StringEncoding];
+  NSLog(@"哇哈哈哈哈哈  ：%@",hahah);
+}
+```
+
+
 

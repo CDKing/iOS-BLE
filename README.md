@@ -6,7 +6,7 @@
 
 < 一 > 蓝牙发射端(**外围设备**)
 #import <CoreBluetooth/CoreBluetooth.h>  
-协议：<CBPeripheralManagerDelegate>  
+协议：CBPeripheralManagerDelegate 
 1）一个外围设备管理器
 
 ```

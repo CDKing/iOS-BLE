@@ -5,9 +5,9 @@
 ***
 
 < 一 > 蓝牙发射端(**外围设备**)
-#import <CoreBluetooth/CoreBluetooth.h> 
+#import <CoreBluetooth/CoreBluetooth.h>  
 协议：<CBPeripheralManagerDelegate>  
-<font color=blue>1）一个外围设备管理器</font>
+1）一个外围设备管理器
 
 ```
 CBPeripheralManager *peripheralMgr; 
@@ -15,7 +15,7 @@ peripheralMgr = [[CBPeripheralManager alloc]initWithDelegate:self queue:nil];
 ``` 
 // 当外围设备管理器被实例化后，协议函数peripheralManagerDidUpdateState会被调用 
 
-<font color=blue>2）管理器状态管理</font>  
+2）管理器状态管理
 ```
 -(void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral
 {
@@ -37,7 +37,7 @@ peripheralMgr = [[CBPeripheralManager alloc]initWithDelegate:self queue:nil];
 }
 ```
 
-<font color=blue>3）搭建服务</font>  
+3）搭建服务
 
 ```
 -(void)setUpBlueTooth

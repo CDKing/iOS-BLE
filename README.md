@@ -4,7 +4,7 @@
 基本的层次关系：***设备-管理器-服务-特征-值。***（管理器开始一对多） 
 ***
 
-< 一 > 蓝牙发射端(**外围设备**)
+## < 一 > 蓝牙发射端(**外围设备**)
 
 #import <CoreBluetooth/CoreBluetooth.h>  
 协议：CBPeripheralManagerDelegate 
@@ -105,9 +105,167 @@ peripheralMgr = [[CBPeripheralManager alloc]initWithDelegate:self queue:nil];
   NSLog(@"获取  ：%@",hahah);
   NSLog(@"得到特征的UUID ： %@",cbs.UUID.description);
   NSString*hahah = [[NSString alloc]initWithData:request.value encoding:NSUTF8StringEncoding];
-  NSLog(@"哇哈哈哈哈哈  ：%@",hahah);
+  NSLog(@"得到数据  ：%@",hahah);
 }
 ```
 
+6)变更（被订阅）内容
 
+```
+[Manager updateValue:Data forCharacteristic:kkk onSubscribedCentrals:nil];
+// 变更后会走楼下的回调函数
 
+- (void)peripheralManagerIsReadyToUpdateSubscribers:(CBPeripheralManager *)peripheral{
+  // 准备更新订购者
+}
+```
+
+***
+
+## < 一 > 蓝牙接收端(**中心设备**)
+
+发射时一层一层包装好了发出去，接收当然就是一层一层拿下来的收回来啦！
+
+#import <CoreBluetooth/CoreBluetooth.h>
+
+协议 ： CBCentralManagerDelegate,CBPeripheralDelegate
+
+1)一个中心管理器
+
+```
+CBCentralManager *centralMgr;
+// 楼下的也一般声明一下意思意思
+// 用于存储设备信息(苹果要求)
+NSMutableArray* peripheralMutableArray;
+NSMutableArray* RSSRMutableArray;
+// 目标设备
+CBPeripheral *targetPeripheral;
+// 初始化后centralManagerDidUpdateState执行
+centralMgr = [[CBCentralManager alloc]initWithDelegate:self queue:nil];
+```
+
+2）管理器状态管理
+
+```
+-(void)centralManagerDidUpdateState:(CBCentralManager *)central
+{
+  // 判断设备蓝牙状态 iOS 10 前
+  if (central.state == CBCentralManagerStatePoweredOn) {
+    // 可用
+  } else {
+    // 不可用
+  }
+  // 判断设备蓝牙状态 iOS 10 前
+  if (central.state == CBManagerStatePoweredOn) {
+    // 设备蓝牙状态可用
+    // 设备可用，开始搜索周围设备,之后发现设备后会执行didDiscoverPeripheral回调方法
+    [centralMgr scanForPeripheralsWithServices:nil options:nil]; 
+  } else {
+     // 设备蓝牙状态异常，请开启蓝牙或检查设备蓝牙是否可用
+  }
+}
+```
+
+3)寻找目标
+
+**找设备**
+
+```
+-(void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary<NSString *,id> *)advertisementData RSSI:(NSNumber *)RSSI
+{
+  // 苹果要求你做的。。。
+  [peripheralMutableArray addObject:peripheral];
+  [RSSRMutableArray addObject:RSSI];
+  // 获取广播名称
+  NSString* adName = [advertisementData objectForKey:@"kCBAdvDataLocalName"];
+  NSLog(@"广播名称：%@",adName);
+  // 获取外围设备信息
+  NSLog(@"外围设备信息:%@",peripheral);
+  if ([adName isEqualToString:@"GoodGoodStudyDaydayUp"]) {
+    // 发现目标设备,开始连接。结果会通过回调函数返回
+    // 开始连接目标设备，结果看楼下的函数
+    [centralMgr connectPeripheral:peripheral options:nil];
+  }
+}
+
+-(void)centralManager:(CBCentralManager *)central didFailToConnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error
+{
+  // 连接外围设备失败
+}
+
+-(void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error
+{
+  // 断开外围设备连接
+}
+
+-(void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
+{
+  NSLog(@"设备连接成功：%@",peripheral.description);
+  targetPeripheral = peripheral;
+  // 搜索设备内服务,发现后didDiscoverServices调用
+  [peripheral setDelegate:self];
+  [peripheral discoverServices:nil];
+}
+```
+
+**找服务**
+
+```
+-(void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error
+{
+  if (error) {
+    NSLog(@"扫描服务失败：%@",error);
+  } else {
+     NSLog(@"扫描到了服务个数：%lu",(unsigned long)peripheral.services.count);
+     for (CBService* service in peripheral.services)
+     {
+        NSLog(@"被扫描到的服务：%@",service.UUID);
+        // 获取对应UUID的服务
+        if ([service.UUID.UUIDString isEqualToString:@"BBBBBBBB-6525-4489-801C-1C060CAC9767"])
+        {
+          // 发现目标服务
+          // 搜索服务，结果在楼下的回调函数调用中体现
+          [peripheral discoverCharacteristics:nil forService:service];
+        }
+     }
+  }
+}
+```
+
+**找特征**
+
+```
+-(void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
+{
+  if (error) {
+    NSLog(@"搜索设备特征失败：%@",error);
+  } else {
+    NSLog(@"%@的特征个数：%ld",service.UUID,(unsigned long)service.characteristics.count);
+    for (CBCharacteristic* character in service.characteristics)
+    {
+       NSLog(@"%@的character：%@",service.UUID,character.UUID);
+       if ([character.UUID.description isEqualToString:@"AAAAAAAA-E798-4D5C-8DCF-49908332DF9F"])
+       {
+          NSLog(@"发现目标特征");
+          // 读特征
+          [peripheral readValueForCharacteristic:character];
+       }
+       // 订阅的处理
+       if ([character.UUID.description isEqualToString:@"？？？？？？"]) {
+          [peripheral setNotifyValue:YES forCharacteristic:character];
+          [peripheral discoverDescriptorsForCharacteristic:character];
+       }
+    }
+  }
+}
+```
+
+**监听值的变化与修改**
+
+```
+// 读与订阅都会走楼下的方法
+-(void)peripheral:(CBCentralManager *)peripheral didUpdateValueForCharacteristic:(nonnull CBCharacteristic *)characteristic error:(nullable NSError *)error
+{
+  
+}
+```

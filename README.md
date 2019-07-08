@@ -266,6 +266,27 @@ centralMgr = [[CBCentralManager alloc]initWithDelegate:self queue:nil];
 // 读与订阅都会走楼下的方法
 -(void)peripheral:(CBCentralManager *)peripheral didUpdateValueForCharacteristic:(nonnull CBCharacteristic *)characteristic error:(nullable NSError *)error
 {
-  
+  if (error) {×} else {
+    // 发现目标特征值更新
+    NSLog(@"发现目标特征值更新:%@",characteristic.UUID.description);
+    // 获取值
+    NSString *str = [[NSString alloc]initWithData:characteristic.value encoding:NSUTF8StringEncoding];
+    NSLog(@"获取目标值:%@",str);
+    // 假如我需要写数据了的话
+    if ([characteristic.UUID.description isEqualToString:@"AAAAAAAA-E798-4D5C-8DCF-49908332DF8F"]) 
+    {
+       // 写数据
+       NSLog(@"写数据中。。。");
+       NSData *writeData  = [@"世界你好" dataUsingEncoding:NSUTF8StringEncoding];
+       // 写完数据后会走到外围设备的对应回调函数中(看第一部分的5）)
+        [targetPeripheral writeValue:writeData forCharacteristic:characteristic type:CBCharacteristicWriteWithoutResponse];
+    }
+  }
 }
 ```
+
+***
+
+## BLE4.0 发射，两台iPhone设备交互的情况下 可以让自己的值0.01秒这样的疯狂变化，只要是withoutresponse，接收端就不会出现数据丢失的情况
+（信号干扰等除外）
+
